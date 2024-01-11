@@ -1,35 +1,44 @@
 window.addEventListener('load', initApp);
-import {Player} from "./Player.js"
 
 let canvas;
-//let clickCounter = 0;
+let clickCounter = 0;
+let isMoving = false;
+let hasMoved = false;
 
 const { SDK3DVerse } = window;
 const { engineAPI } = SDK3DVerse;
 const { cameraAPI } = engineAPI;
 let  viewport;
-let player;
 
-const topViewSettings = {
-    position: [612,618,497],
-    orientation: [-0.3741917908191681,0.010681639425456524,0.004310362506657839,0.9272798299789429],
-    speed: 500
-};
-const floorViewSettings = {
-    orientation: [-0.037684690207242966, -0.6933388113975525, -0.03635463863611221, 0.7187068462371826],
-    speed: 300
-};
+let infoUtilitiesPanel;
+let infoUtilitiesData;
+let cokeriePanel;
+let cokerieData;
+let sinterPanel;
+let sinterData;
 
 async function initApp() {
+    tailwind.config = {
+        theme: {
+            extend: {
+            colors: {
+                clifford: '#da373d',
+            }
+            }
+        }
+    };
+
     canvas = document.getElementById('display-canvas');
     await SDK3DVerse.joinOrStartSession({
-        userToken: 'public_FGgoJaVhB2UPv8y_',
-        sceneUUID: 'f4a5efae-dc6f-42e9-a093-b1bfe12ed2e5',
+        userToken: AppConfig.userToken,
+        sceneUUID: AppConfig.mainScene,
         canvas,
         viewportProperties: {
             defaultControllerType: SDK3DVerse.controller_type.editor,
             //defaultControllerType: SDK3DVerse.controller_type.orbit,
         },
+        defaultCameraSpeed: 3,
+        connectToEditor: true
     });
 
     viewport = cameraAPI.getActiveViewports()[0];
@@ -39,118 +48,126 @@ async function initApp() {
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock || canvas.webkitPointerLockElement;
     document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
 
-    canvas.addEventListener('mouseup', onKeyOrMousePressed);
-    canvas.addEventListener('keypress', onKeyOrMousePressed);
-    canvas.addEventListener('click', onKeyOrMousePressed);
-    //canvas.addEventListener('mousemove', onKeyOrMousePressed);
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('keypress', onKeyPressed);
 
-    player = new Player();
+    bindControls();
 
-    //const videoPlayer = new VideoPlayer()
-    //var pEntity = engineAPI.getEntity("2706955184");
-    //videoPlayer.addScreens(pEntity)
-    //videoPlayer.initialize(engineAPI.canvas, canvas);
+    infoUtilitiesPanel = document.getElementById('info_utilities');
+    infoUtilitiesData = document.getElementById('info_utilities_data');
+
+    cokeriePanel = document.getElementById('info_coke');
+    cokerieData = document.getElementById('info_coke_data');
+
+    sinterPanel = document.getElementById('info_sinter');
+    sinterData = document.getElementById('info_sinter_data');
+
+    SDK3DVerse.notifier.on('onEntitySelectionChanged', onSelectionChanged);
 }
 
-const onKeyOrMousePressed = async (e) => {
-    const { currentStatus } = player;
-    console.log(`Player's status: ${currentStatus}`);
+function onSelectionChanged(selectedEntities, unselectedEntities)
+{
+    const selectedEntity = selectedEntities[0];
+    console.log('Selected', selectedEntity);
+    if(!selectedEntity?.isAttached('scene_ref')) {
+        // allow to select only specific entities
+        unselect();
+        return;
+    }
 
-    switch (currentStatus) {
-        case player.status.MOVING:
-            switch (e.which) {
-                case 109:
-                    gotoTopView();
-                    player.currentStatus = player.status.CHECKING_MAP;
-                    break;
-                case 1:
-                    openUI(e);
-                    break;
-                default:
-                    break;
-            }
+    const sceneLinked = selectedEntity.getComponent('scene_ref').value;
+    console.log('Selected linked scene', sceneLinked);
+    switch(sceneLinked)
+    {
+        case AppConfig.scenes.cokerie:
+            cokerieData.innerHTML = ArcelorData.processes[0].materials.map(utility => HTMLTemplates.renderCokerieCard(utility)).join('\n');
+            cokeriePanel.classList.remove('hidden');
             break;
-
-        case currentPlayer.status.CHECKING_MAP:
-            switch (e.which) {
-                case 109:
-                    //onPeviousView();
-                    break;
-                case 1:
-                    checkMap(e);
-                    break;
-                case 0:
-                    //const {entity, pickedPosition, pickedNormal} = await SDK3DVerse.engineAPI.castScreenSpaceRay(e.clientX, e.clientY, true, false);
-                    break;
-                default:
-                    break;
-            }
+        case AppConfig.scenes.sinter:
+            sinterData.innerHTML = HTMLTemplates.renderSinterCard(ArcelorData.processes[1]);
+            sinterPanel.classList.remove('hidden');
+            break;
+        case AppConfig.scenes.furnace:
+            infoUtilitiesData.innerHTML = ArcelorData.utilities.map(utility => HTMLTemplates.renderUtilityCard(utility)).join('\n');
+            infoUtilitiesPanel.classList.remove('hidden');
             break;
         default:
+            // allow to select only specific entities
+            unselect();
             break;
     }
-
-    if(e.which === 112) {
-        console.log(viewport.getTransform());
-    }
-    else if (e.which === 0) {
-        //console.log(isTpe);
-        //console.log(currentPlayer.currentStatus);
-    }
 }
 
-const metadataParsedFromJSON = {
-    train: { mass: 1000, volume: 200, deisgnation: "convoyeur Coke" }
+function unselect() {
+    SDK3DVerse.engineAPI.unselectAllEntities();
+    cokeriePanel.classList.add('hidden');
+    sinterPanel.classList.add('hidden');
+    infoUtilitiesPanel.classList.add('hidden');
+}
+
+const onKeyPressed = async (e) => {
+}
+
+let mouseStartPos = null;
+const onMouseDown = (e) =>
+{
+    if(clickCounter == 0) {
+        mouseStartPos = { x: e.clientX, y: e.clientY };
+    }
+
+    // Increase a counter to keep track of how many mouse buttons are held
+    clickCounter++;
+    canvas.removeEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mousemove', onMouseMove);
+    if(!isMoving) {
+        canvas.removeEventListener('mouseup', onMouseUp);
+        canvas.addEventListener('mouseup', onMouseUp);
+    }
+};
+const onMouseMove = (e) =>
+{
+    const deltaX = Math.abs(mouseStartPos.x - e.clientX);
+    const deltaY = Math.abs(mouseStartPos.y - e.clientY);
+    if(deltaX < 20 &&  deltaY < 20) {
+        return;
+    }
+
+    // Lock the mouse pointer to make mouse pointer disappear
+    // as soon as the mouse has moved with a mouse button held down
+    isMoving = true;
+    canvas.requestPointerLock();
+    canvas.removeEventListener('mousemove', onMouseMove);
+    canvas.removeEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('mouseup', onMouseUpAfterMove);
+};
+const onMouseUpAfterMove = () =>
+{
+    // Exit the mouse pointer lock to make it appear back once all mouse buttons are released
+    if(clickCounter > 0 && --clickCounter === 0) {
+        canvas.removeEventListener('mouseup', onMouseUpAfterMove);
+        isMoving = false;
+        document.exitPointerLock();
+    }
 };
 
-async function openUI(e) {
-    const target = await SDK3DVerse.engineAPI.castScreenSpaceRay(
-        e.clientX,
-        e.clientY
-    );
+const onMouseUp = async (e) =>
+{
+    canvas.removeEventListener('mousemove', onMouseMove);
+    canvas.removeEventListener('mouseup', onMouseUp);
+    clickCounter = 0;
 
-    if (!target.pickedPosition) {
-        return;
-    }
+    const selectEntity = true;
+    const keepOldSelection = false;
+    const seekExternalLinker = true;
+    const options = [selectEntity, keepOldSelection, seekExternalLinker];
+    SDK3DVerse.engineAPI.unselectAllEntities();
+    const { entity } = await SDK3DVerse.engineAPI.castScreenSpaceRay(e.clientX, e.clientY, ...options);
+    console.log("pick", entity?.getName())
+};
 
-    console.debug("Clicked entity:", target.entity);
-    fetch('UI.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById("UI").innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Erreur de chargement du fichier UI.html:', error);
-        });
-}
-
-const gotoTopView = () => {
-    const { position, orientation, speed } = topViewSettings;
-    cameraAPI.travel(viewport, position, orientation, speed);
-}
-
-const checkMap = async (e) => {
-    //const {entity, pickedPosition, pickedNormal} = 
-    await engineAPI.castScreenSpaceRay(e.clientX, e.clientY, true, false, true);
-
-    // Get the selected entity which may be different from the picked entity if it belongs to a scene linker
-    let selectedUnit = engineAPI.getSelectedEntities()[0];
-    if(!selectedUnit) {
-        return;
-    }
-
-    const childs = await selectedUnit.getChildren();
-    for (const child of childs) {
-        console.debug('child entity:', child.getName());
-        if(child.getName() === "TP_POINT"){
-            const { position } = child.getGlobalTransform();
-            const { orientation, speed } = floorViewSettings;
-            cameraAPI.travel(viewport, position, orientation, speed);
-            player.currentStatus = player.status.MOVING;
-        }
-    }
-}
-
+// Utility function that help to associate a entry in the data.json or data.js to
+// to an entity if the scene by using the tags component with some arbitrary naming "metadata-" of a tag
+/*
 function getMetadata(entity) {
     const tags = entity.getComponent('tags')?.value || [];
     for(const tag of tags) {
@@ -168,3 +185,4 @@ function getMetadata(entity) {
     console.debug("Metadata not found, search into next parent:", parent.getName());
     return getMetadata(parent);
 }
+*/
