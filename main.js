@@ -44,7 +44,10 @@ async function initApp() {
     viewport = cameraAPI.getActiveViewports()[0];
 
     await SDK3DVerse.installExtension(SDK3DVerse_ThreeJS_Ext);
-
+    await SDK3DVerse.installExtension(SDK3DVerse_ViewportDomOverlay_Ext);
+    //PAF Start
+    await SDK3DVerse.installExtension(SDK3DVerse_LabelDisplay_Ext);
+    //PAF End
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock || canvas.webkitPointerLockElement;
     document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
 
