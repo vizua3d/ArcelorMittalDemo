@@ -22,3 +22,15 @@ And we use [flowbite v2.2.1 JS file](https://cdnjs.cloudflare.com/ajax/libs/flow
 https://mellowdevs.medium.com/web-components-using-vanilla-js-f7af00834caa
 https://coderpad.io/blog/development/intro-to-web-components-vanilla-js/
 
+## About Github Pages<>
+The "Try it out" is published as Github Pages from https://github.com/vizua3d/ArcelorMittalDemo/tree/gh-pages.
+
+[ArcelorMittalDemo](https://github.com/vizua3d/ArcelorMittalDemo) repository is a public mirror of the [ArcelorMittal](https://github.com/vizua3d/ArcelorMittal) private repository. To sync the mirror, run the following command from the [ArcelorMittal](https://github.com/vizua3d/ArcelorMittal) private repository:
+```
+git push --mirror git@github.com:vizua3d/ArcelorMittalDemo.git
+```
+
+Then you need to sync the gh-pages branch, which is a subtree of the master branch. To do so use the following command from the master branch:
+```
+git subtree push --prefix public origin gh-pages
+```
