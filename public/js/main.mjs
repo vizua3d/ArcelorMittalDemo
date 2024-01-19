@@ -1,21 +1,30 @@
+
+import AppConfig from './AppConfig.mjs';
+import { bindControls } from './bindings.mjs';
+import './components/toolbar-button.mjs';
+import './components/info-panel.mjs';
+import './components/modal-error.mjs';
+
+let ArcelorData = {};
+fetch('./data.json').then(async (content) => {
+    ArcelorData = await content.json();
+});
+
 window.addEventListener('load', initApp);
 
 let canvas;
 let clickCounter = 0;
 let isMoving = false;
-let hasMoved = false;
 
 const { SDK3DVerse } = window;
 const { engineAPI } = SDK3DVerse;
 const { cameraAPI } = engineAPI;
 let  viewport;
 
-let infoUtilitiesPanel;
-let infoUtilitiesData;
+let mainErrorModal;
 let cokeriePanel;
-let cokerieData;
 let sinterPanel;
-let sinterData;
+let utilitiesPanel;
 
 async function initApp() {
     tailwind.config = {
@@ -27,8 +36,14 @@ async function initApp() {
             }
         }
     };
+    initFlowbite();
 
+    mainErrorModal = document.getElementById('am_main_error_modal');
+    cokeriePanel = document.getElementById('info_coke');
+    sinterPanel = document.getElementById('info_sinter');
+    utilitiesPanel = document.getElementById('info_utilities');
     canvas = document.getElementById('display-canvas');
+
     await SDK3DVerse.joinOrStartSession({
         userToken: AppConfig.userToken,
         sceneUUID: AppConfig.mainScene,
@@ -39,15 +54,18 @@ async function initApp() {
         },
         defaultCameraSpeed: 3,
         connectToEditor: true
+    }).catch(error => {
+        console.error("Failed to open session:", error);
+        console.debug(mainErrorModal);
+        mainErrorModal.show([error.toString()]);
     });
 
     viewport = cameraAPI.getActiveViewports()[0];
 
     await SDK3DVerse.installExtension(SDK3DVerse_ThreeJS_Ext);
     await SDK3DVerse.installExtension(SDK3DVerse_ViewportDomOverlay_Ext);
-    //PAF Start
     await SDK3DVerse.installExtension(SDK3DVerse_LabelDisplay_Ext);
-    //PAF End
+
     canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock || canvas.webkitPointerLockElement;
     document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
 
@@ -55,15 +73,6 @@ async function initApp() {
     canvas.addEventListener('keypress', onKeyPressed);
 
     bindControls();
-
-    infoUtilitiesPanel = document.getElementById('info_utilities');
-    infoUtilitiesData = document.getElementById('info_utilities_data');
-
-    cokeriePanel = document.getElementById('info_coke');
-    cokerieData = document.getElementById('info_coke_data');
-
-    sinterPanel = document.getElementById('info_sinter');
-    sinterData = document.getElementById('info_sinter_data');
 
     SDK3DVerse.notifier.on('onEntitySelectionChanged', onSelectionChanged);
 }
@@ -83,16 +92,16 @@ function onSelectionChanged(selectedEntities, unselectedEntities)
     switch(sceneLinked)
     {
         case AppConfig.scenes.cokerie:
-            cokerieData.innerHTML = ArcelorData.processes[0].materials.map(utility => HTMLTemplates.renderCokerieCard(utility)).join('\n');
-            cokeriePanel.classList.remove('hidden');
+            cokeriePanel.setItems(ArcelorData.processes[0].materials);
+            cokeriePanel.show();
             break;
         case AppConfig.scenes.sinter:
-            sinterData.innerHTML = HTMLTemplates.renderSinterCard(ArcelorData.processes[1]);
-            sinterPanel.classList.remove('hidden');
+            sinterPanel.setItems([ArcelorData.processes[1]]);
+            sinterPanel.show();
             break;
         case AppConfig.scenes.furnace:
-            infoUtilitiesData.innerHTML = ArcelorData.utilities.map(utility => HTMLTemplates.renderUtilityCard(utility)).join('\n');
-            infoUtilitiesPanel.classList.remove('hidden');
+            utilitiesPanel.setItems(ArcelorData.utilities);
+            utilitiesPanel.show();
             break;
         default:
             // allow to select only specific entities
@@ -103,9 +112,9 @@ function onSelectionChanged(selectedEntities, unselectedEntities)
 
 function unselect() {
     SDK3DVerse.engineAPI.unselectAllEntities();
-    cokeriePanel.classList.add('hidden');
-    sinterPanel.classList.add('hidden');
-    infoUtilitiesPanel.classList.add('hidden');
+    cokeriePanel.hide();
+    sinterPanel.hide();
+    utilitiesPanel.hide();
 }
 
 const onKeyPressed = async (e) => {
@@ -165,10 +174,9 @@ const onMouseUp = async (e) =>
     const options = [selectEntity, keepOldSelection, seekExternalLinker];
     SDK3DVerse.engineAPI.unselectAllEntities();
     const { entity } = await SDK3DVerse.engineAPI.castScreenSpaceRay(e.clientX, e.clientY, ...options);
-    console.log("pick", entity?.getName())
 };
 
-// Utility function that help to associate a entry in the data.json or data.js to
+// Utility function that could help to associate a entry in the data.json or data.js to
 // to an entity if the scene by using the tags component with some arbitrary naming "metadata-" of a tag
 /*
 function getMetadata(entity) {

@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width,initial-scale=1.0" name="viewport" />
+
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+
+  <body class="bg-black">
+    <div class="canvas-container absolute">
+      <!-- CANVAS -->
+      <canvas
+        id="display-canvas"
+        tabindex="1"
+        oncontextmenu="event.preventDefault()"
+      ></canvas>
+    </div>
+
+    <div class="tools-container absolute bottom-0 left-0 right-0 flex justify-center overflow-hidden">
+      <div class="bg-white rounded-lg p-2 mb-3 flex flex-row justify-space-around overflow-hidden">
+        <am-toolbar-button id="btn_reset_camera" iconClass="fas fa-undo" title =""></am-toolbar-button>
+        <am-toolbar-button id="btn_play_all" iconClass="fas fa-play mr-3" title="All"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_all_cokerie" iconClass="fas fa-play mr-3" title="Cokerie"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_cokerie_1" iconClass="fas fa-play mr-3" title="Injection"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_cokerie_2" iconClass="fas fa-play mr-3" title="Gripper go"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_cokerie_3" iconClass="fas fa-play mr-3" title="Push Coke"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_1" iconClass="fas fa-play mr-3" title="Coke train"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_cokerie_4" iconClass="fas fa-play mr-3" title="Gripper back"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_2" iconClass="fas fa-play mr-3" title="Sinter train"></am-toolbar-button>
+        <am-toolbar-button id="btn_play_3" iconClass="fas fa-play mr-3" title="Charge Furnace"></am-toolbar-button>
+      </div>
+    </div>
+
+    <am-modal-error id="am_main_error_modal" title="Error"></am-modal-error>
+
+    <am-info-panel id="info_coke" itemType="cokerieCard" title="Cokerie materials"></am-info-panel>
+    <am-info-panel id="info_utilities" itemType="utilityCard" title="Utilities"></am-info-panel>
+    <am-info-panel id="info_sinter" itemType="sinterCard" title="Sinter"></am-info-panel>
+
+    <!-- SDK 3DVERSE -->
+    <script src="https://cdn.3dverse.com/legacy/sdk/stable/SDK3DVerse.js"></script>
+    <script src="https://cdn.3dverse.com/legacy/sdk/stable/SDK3DVerse_ThreeJS_Ext.js"></script>
+    <script src="https://cdn.3dverse.com/legacy/sdk/stable/SDK3DVerse_MPR_Ext.js"></script>
+    <script src="https://cdn.3dverse.com/legacy/sdk/stable/SDK3DVerse_ViewportDomOverlay_Ext.js"></script>
+    <script src="https://cdn.3dverse.com/legacy/sdk/stable/SDK3DVerse_LabelDisplay_Ext.js"></script>
+    <!-- APP ENTRYPOINT -->
+    <script src="./js/main.mjs" type="module"></script>
+
+    <script src="./vendor/js/tailwindcss-3.4.1.js"></script>
+    <script src="./vendor/js/fontawesome-5.15.4.js"></script>
+    <script src="./vendor/js/flowbite-2.2.1.js"></script>
+  </body>
+</html>

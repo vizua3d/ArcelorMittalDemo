@@ -1,0 +1,12 @@
+{
+  "name": "arcelormittal",
+  "version": "1.0.0",
+  "description": "[Try it out](https://vizua3d.github.io/ArcelorMittalDemo/)",
+  "main": "public/js/main.js",
+  "scripts": {
+    "start": "npx browser-sync start --cwd public --ss public --server --files \"css/**/*.css\" \"js/**/*.?js\" \"**/*.html\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
